@@ -59,8 +59,8 @@ class loginViewController: UIViewController {
             }
            
             // successfully logged into the system
-            print("Success")
             self.dismiss(animated: true, completion: nil)
+            
         }
         
     }
@@ -128,13 +128,18 @@ class loginViewController: UIViewController {
         return view
     }()
     
-    let profileImageView : UIImageView = {
+   lazy var profileImageView : UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(named: "gameofthrones_splash")
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFill
+        
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleSelectProfileImageView)))
+        imageView.isUserInteractionEnabled = true
         return imageView
     }()
+    
+   
     
     @objc lazy var loginRegisterSegmentedControl : UISegmentedControl = {
         let segmentedControl = UISegmentedControl(items: ["Login","Register"])
