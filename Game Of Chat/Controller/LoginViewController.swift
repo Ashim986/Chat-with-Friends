@@ -12,6 +12,7 @@ import Firebase
 
 class LoginViewController: UIViewController {
     
+    var messageController = MessageController()
     
     let inputContainerView : UIView = {
         let view = UIView()
@@ -50,13 +51,13 @@ class LoginViewController: UIViewController {
             print("Form is not valid")
             return
         }
-        print("print login")
-        Auth.auth().signIn(withEmail: email, password: password) { (user, err) in
+        Auth.auth().signIn(withEmail: email, password: password) { (users, err) in
             if err != nil {
                 print(err as Any)
                 return
             }
             // successfully logged into the system
+            self.messageController.setupNavBarWithUserTitle()
             self.dismiss(animated: true, completion: nil)
         }
     }

@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-extension LoginViewController : UIImagePickerControllerDelegate,UINavigationControllerDelegate{
+extension LoginViewController : UIImagePickerControllerDelegate,UINavigationControllerDelegate {
     
     func handleRegister(){
         
@@ -17,19 +17,21 @@ extension LoginViewController : UIImagePickerControllerDelegate,UINavigationCont
             print("Form is not valid")
             return
         }
-        Auth.auth().createUser(withEmail: email, password: password) { (user, err) in
+        Auth.auth().createUser(withEmail: email, password: password) { (users, err) in
             if err != nil {
                 print(err as Any)
                 return
             }
-            guard let uid = user?.uid else {
+            guard let uid = users?.uid else {
                 return
             }
             // sucessfully authenticated user
-            
             // stroing Image in Data
             // fireBase will throw error if the child refrence is not created to store image
             let imageName = NSUUID().uuidString
+            
+            //Storage.storage.refrence gives access to the storage portion. you will have to create child node in order to store value in that node
+              
             let storageRef = Storage.storage().reference().child("profileImage").child("\(imageName).jpg")
             
             if let profileImage = self.profileImageView.image,let uploadData = UIImageJPEGRepresentation(profileImage, 0.1){
@@ -52,13 +54,24 @@ extension LoginViewController : UIImagePickerControllerDelegate,UINavigationCont
         
         // Data upload Data
         let ref = Database.database().reference(fromURL: "https://gameofchat-b295a.firebaseio.com/")
-        let userReference = ref.child("user").child(uid)
+        let userReference = ref.child("users").child(uid)
         userReference.updateChildValues(values, withCompletionBlock: { (err, ref) in
             if err != nil
             {
                 print(err as Any)
             }
+           let user = User()
+            user.setValuesForKeys(values)
+//            long form for setting value for dictionary of value is given below.
+//            for dictionary in values{
+//                user.setValuesForKeys([dictionary.key : dictionary.value])
+//
+                // alternatively it can be done with
+                //user.setValue(dictionary.value, forKey: dictionary.key)
+//            }
+            self.messageController.setupNavBarWithUser(user: user)
             self.dismiss(animated: true, completion: nil)
+            
         })
     }
     
