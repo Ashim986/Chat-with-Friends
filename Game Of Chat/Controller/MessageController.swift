@@ -12,7 +12,9 @@ import Firebase
 class MessageController: UITableViewController {
     
     var messages = [Message]()
+    var messageDictionary = [String : Message]()
     
+    let cellID = "cellID"
     override func viewDidLoad() {
         super.viewDidLoad()
         let rightBarButtonImage = UIImage(named: "new_message_icon")
@@ -20,6 +22,7 @@ class MessageController: UITableViewController {
         
         view.backgroundColor = .white
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector (handleLogout))
+        tableView.register(MessageCell.self, forCellReuseIdentifier: cellID)
         // user in not logged in
         checkIfUserIsLoggedIn()
         observeMessage()
@@ -33,7 +36,17 @@ class MessageController: UITableViewController {
                 // to use setValueForKeys(dictionary) make sure your message is objc format data or else it will fail
                 message.setValuesForKeys(dictionary)
                self.messages.append(message)
-                
+                if let toID = message.toID {
+                    self.messageDictionary[toID] = message
+                    // Need to understand this line for update of message with the messageDictionary.values
+                    // what this is doing is collecting all toID and keeping in message as single object... which is kind a puzzeling
+                    self.messages = Array(self.messageDictionary.values)
+                    
+                    self.messages.sort(by: { (message1, message2) -> Bool in
+                        return Int(truncating: message1.timeStamp!) > Int(truncating: message2.timeStamp!)
+                    })
+
+                }
                 // lets reload data in table view with async operation
                 DispatchQueue.main.async {
                     self.tableView.reloadData()
@@ -41,17 +54,20 @@ class MessageController: UITableViewController {
             }
         }
     }
+//    MARK: Table View Contents
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return messages.count
     }
+    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 64
+    }
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let messageDisplay = messages[indexPath.row]
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: "cellID")
-        cell.textLabel?.text = messageDisplay.toID
-        cell.detailTextLabel?.text = messageDisplay.text
-      
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath) as!  MessageCell
+             cell.message = messageDisplay
         return cell
     }
     
