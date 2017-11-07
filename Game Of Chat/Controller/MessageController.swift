@@ -25,35 +25,45 @@ class MessageController: UITableViewController {
         tableView.register(MessageCell.self, forCellReuseIdentifier: cellID)
         // user in not logged in
         checkIfUserIsLoggedIn()
-        observeMessage()
+        
     }
-    func observeMessage() {
-        let refrence = Database.database().reference().child("messages")
-        refrence.observe(.childAdded) { (snapshot) in
+    func observeUserMessage() {
+        guard let uid = Auth.auth().currentUser?.uid else {return}
+        
+        let refrence = Database.database().reference().child("userMessage").child(uid)
+        
+        refrence.observe(.childAdded, with: { (snapshot) in
             
-            let message = Message()
-            if let dictionary = snapshot.value as? [String: AnyObject]{
-                // to use setValueForKeys(dictionary) make sure your message is objc format data or else it will fail
-                message.setValuesForKeys(dictionary)
-               self.messages.append(message)
-                if let toID = message.toID {
-                    self.messageDictionary[toID] = message
-                    // Need to understand this line for update of message with the messageDictionary.values
-                    // what this is doing is collecting all toID and keeping in message as single object... which is kind a puzzeling
-                    self.messages = Array(self.messageDictionary.values)
-                    
-                    self.messages.sort(by: { (message1, message2) -> Bool in
-                        return Int(truncating: message1.timeStamp!) > Int(truncating: message2.timeStamp!)
-                    })
-
+            let messageID = snapshot.key
+            let messageRefrence = Database.database().reference().child("messages").child(messageID)
+            
+            messageRefrence.observeSingleEvent(of: .value, with: { (snapshot) in
+            
+                let message = Message()
+                if let dictionary = snapshot.value as? [String : AnyObject] {
+                    // to use setValueForKeys(dictionary) make sure your message is objc format data or else it will fail
+                    // also make sure your message object name is same as dictionary key
+                    message.setValuesForKeys(dictionary)
+                    self.messages.append(message)
+                    if let toID = message.toID {
+                        self.messageDictionary[toID] = message
+                        // Need to understand this line for update of message with the messageDictionary.values
+                        // what this is doing is collecting all toID and keeping in message as single object... which is kind a puzzeling
+                        self.messages = Array(self.messageDictionary.values)
+                        
+                        self.messages.sort(by: { (message1, message2) -> Bool in
+                           return Int(truncating: message1.timeStamp!) > Int(truncating: message2.timeStamp!)
+                        })
+                    }
+                    // reload data with async opration
+                    DispatchQueue.main.async {
+                        self.tableView.reloadData()
+                    }
                 }
-                // lets reload data in table view with async operation
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
-                }
-            }
-        }
+            })
+        }, withCancel: nil)
     }
+    
 //    MARK: Table View Contents
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -69,6 +79,22 @@ class MessageController: UITableViewController {
         let cell = tableView.dequeueReusableCell(withIdentifier: cellID, for: indexPath) as!  MessageCell
              cell.message = messageDisplay
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let message = messages[indexPath.row]
+        
+        guard let chatPartnerID = message.chatPartnerID() else {return}
+        
+        let refrence = Database.database().reference().child("users").child(chatPartnerID)
+        refrence.observe(.value) { (snapshot) in
+            let user = User()
+            guard let dictionary = snapshot.value as? [String : AnyObject] else { return }
+            user.setValuesForKeys(dictionary)
+            user.id = chatPartnerID
+            self.showChatControllerForUser(user: user)
+        }
+        
     }
     
     func checkIfUserIsLoggedIn(){
@@ -129,6 +155,10 @@ class MessageController: UITableViewController {
     }
     
     func setupNavBarWithUserTitle() {
+        messages.removeAll()
+        messageDictionary.removeAll()
+        tableView.reloadData()
+        observeUserMessage()
         
         guard let uid = Auth.auth().currentUser?.uid else {
          // for some reason if uid is nil
@@ -166,7 +196,6 @@ class MessageController: UITableViewController {
         let navController = UINavigationController(rootViewController : newMessageController)
         present(navController, animated: true, completion: nil)
     }
-//    MARK: TableViewController Properties
     
     
 }

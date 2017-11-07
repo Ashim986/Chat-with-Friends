@@ -13,22 +13,9 @@ class MessageCell: UITableViewCell {
     
     var message : Message? {
         didSet {
-            textLabel?.text = message?.toID
-            if let toID  = message?.toID {
-                let refrence = Database.database().reference().child("users").child(toID)
-                
-                refrence.observe(.value, with: { (snapshot) in
-                    if let dictionary = snapshot.value as? [String : Any]{
-                        self.textLabel?.text = dictionary["name"] as? String
-                        if let profileImageUrl = dictionary["profileImageUrl"] as? String {
-                            self.profileImageViewInMessage.sd_setImage(with: URL(string : profileImageUrl), completed: nil)
-                        }
-                        
-                    }
-                    
-                }, withCancel: nil)
-            }
+            setupNameAndProfileImage()
             detailTextLabel?.text = message?.text
+
             if let seconds = message?.timeStamp?.doubleValue {
                 let timestampDate = NSDate(timeIntervalSince1970: seconds)
                 
@@ -38,6 +25,22 @@ class MessageCell: UITableViewCell {
 
             }
             
+        }
+    }
+    private func setupNameAndProfileImage (){
+        if let id  = message?.chatPartnerID() {
+            let refrence = Database.database().reference().child("users").child(id)
+            
+            refrence.observe(.value, with: { (snapshot) in
+                if let dictionary = snapshot.value as? [String : Any]{
+                    self.textLabel?.text = dictionary["name"] as? String
+                    if let profileImageUrl = dictionary["profileImageUrl"] as? String {
+                        self.profileImageViewInMessage.sd_setImage(with: URL(string : profileImageUrl), completed: nil)
+                    }
+                    
+                }
+                
+            }, withCancel: nil)
         }
     }
     
@@ -80,7 +83,7 @@ class MessageCell: UITableViewCell {
         NSLayoutConstraint.activate([profileImageViewInMessage.leftAnchor.constraint(equalTo: self.leftAnchor, constant: 8),profileImageViewInMessage.centerYAnchor.constraint(equalTo: self.centerYAnchor), profileImageViewInMessage.widthAnchor.constraint(equalToConstant: 48), profileImageViewInMessage.heightAnchor.constraint(equalToConstant: 48) ])
         
         // constraint for Time Label (x,y,width,height)
-        NSLayoutConstraint.activate([timeLabel.rightAnchor.constraint(equalTo: self.rightAnchor, constant: -4), timeLabel.topAnchor.constraint(equalTo: self.topAnchor, constant : 4), timeLabel.widthAnchor.constraint(equalToConstant: 90),timeLabel.heightAnchor.constraint(equalToConstant: 14)])
+        NSLayoutConstraint.activate([timeLabel.rightAnchor.constraint(equalTo: self.rightAnchor, constant: 5), timeLabel.topAnchor.constraint(equalTo: self.topAnchor, constant : 8), timeLabel.widthAnchor.constraint(equalToConstant: 90),timeLabel.heightAnchor.constraint(equalToConstant: 14)])
     }
     
     required init?(coder aDecoder: NSCoder) {
