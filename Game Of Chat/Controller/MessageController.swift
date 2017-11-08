@@ -45,8 +45,8 @@ class MessageController: UITableViewController {
                     // also make sure your message object name is same as dictionary key
                     message.setValuesForKeys(dictionary)
                     self.messages.append(message)
-                    if let toID = message.toID {
-                        self.messageDictionary[toID] = message
+                    if let chatPartnerID = message.chatPartnerID() {
+                        self.messageDictionary[chatPartnerID] = message
                         // Need to understand this line for update of message with the messageDictionary.values
                         // what this is doing is collecting all toID and keeping in message as single object... which is kind a puzzeling
                         self.messages = Array(self.messageDictionary.values)
@@ -55,15 +55,21 @@ class MessageController: UITableViewController {
                            return Int(truncating: message1.timeStamp!) > Int(truncating: message2.timeStamp!)
                         })
                     }
-                    // reload data with async opration
-                    DispatchQueue.main.async {
-                        self.tableView.reloadData()
-                    }
+                    // timer will delay operation for dispatch queue for contineous reload inside block So instead it will prevent multiple repetetion for async operation
+                    // Now the data is reloaded only one time in table view with this delay operation
+                    self.timer?.invalidate()
+                    self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.displayTableData), userInfo: nil, repeats: false)
                 }
             })
         }, withCancel: nil)
     }
-    
+    var timer : Timer?
+@objc func displayTableData() {
+    // reload data with async opration
+    DispatchQueue.main.async {
+        self.tableView.reloadData()
+    }
+}
 //    MARK: Table View Contents
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {

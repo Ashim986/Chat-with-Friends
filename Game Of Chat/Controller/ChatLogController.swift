@@ -41,12 +41,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
             }, withCancel: nil)
         }
     }
-    let containerView : UIView = {
-       let view = UIView()
-        view.backgroundColor = .white
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
+    
     let  sendButton : UIButton = {
        let button = UIButton(type: .system)
         button.setTitle("Send", for: .normal)
@@ -59,6 +54,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         let textField = UITextField()
         textField.attributedPlaceholder = NSAttributedString(string: "Enter Message", attributes: [NSAttributedStringKey.foregroundColor : UIColor.gray])
         textField.delegate = self
+        textField.keyboardType = .emailAddress
         textField.translatesAutoresizingMaskIntoConstraints = false
        return textField
     }()
@@ -72,12 +68,73 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
     let cellID = "cellID"
     override func viewDidLoad() {
         super.viewDidLoad()
+        collectionView?.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 58, right: 0)
         collectionView?.alwaysBounceVertical = true
         collectionView?.backgroundColor = .white
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Back", style: .plain, target: self, action: #selector(handelBack))
         collectionView?.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellID)
-        setupInputComponents()
-        
+        collectionView?.keyboardDismissMode = .interactive
+
+//        setupKeyboardObservers()
+    }
+    
+    lazy var inputContainerView : UIView? = {
+       
+        let containerView = UIView()
+        containerView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50)
+        containerView.backgroundColor = .white
+        return setupInputComponents(containerView: containerView)
+    }()
+    
+    override var inputAccessoryView: UIView? {
+        get {
+            return inputContainerView
+        }
+    }
+    override var canBecomeFirstResponder: Bool {
+        get {
+            return true
+        }
+    }
+    
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    
+    // This Code is for animating keyboard display and dismiss keyboard.
+//    func setupKeyboardObservers(){
+//        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillShow), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
+//
+//        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillHide), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+//
+//    }
+//    @objc func handleKeyboardWillShow(notification : Notification){
+//        if let keyboardFrame = notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue {
+//            let keyboardRect = keyboardFrame.cgRectValue
+//            let keyboardHeight = keyboardRect.height
+//            // we will bring the containerview above somehow
+//            buttomContainerAnchor?.constant = -keyboardHeight
+//            buttomContainerAnchor?.isActive = true
+//        }
+//
+//        if let keyBoardAnimationDuration = notification.userInfo?[UIKeyboardAnimationDurationUserInfoKey] as? TimeInterval {
+//            UIView.animate(withDuration: keyBoardAnimationDuration, animations: {
+//                self.view.layoutIfNeeded()
+//            })
+//        }
+//    }
+    
+    @objc func handleKeyboardWillHide(notification : Notification){
+     
+        buttomContainerAnchor?.constant = 0
+        buttomContainerAnchor?.isActive = true
+        if let keyboardAnimationDuration = notification.userInfo?[UIKeyboardAnimationDurationUserInfoKey] as? TimeInterval {
+            UIView.animate(withDuration: keyboardAnimationDuration, animations: {
+                self.view.layoutIfNeeded()
+            })
+        }
         
     }
     
@@ -91,26 +148,67 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellID, for: indexPath) as! ChatMessageCell
         let message = messages[indexPath.item]
         cell.textView.text = message.text
+        setupCell(cell: cell, message: message)
+    
         return cell
     }
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: view.frame.width, height: 80)
+    
+    func setupCell (cell : ChatMessageCell , message : Message) {
+        
+        if let profileImageURL = user?.profileImageUrl {
+            cell.profileImageView.sd_setImage(with: URL(string : profileImageURL), completed: nil)
+        }
+        if message.fromID == Auth.auth().currentUser?.uid {
+            cell.bubbleView.backgroundColor = ChatMessageCell.blueColor
+            cell.textView.textColor = .white
+            cell.profileImageView.isHidden = true
+            cell.bubbleViewRightAnchor?.isActive = true
+            cell.bubbleViewLeftAnchor?.isActive = false
+        }else {
+            // grey area for bubble
+            cell.bubbleView.backgroundColor = UIColor(r: 240, g: 240, b: 240)
+            cell.textView.textColor = .black
+            cell.profileImageView.isHidden = false
+            cell.bubbleViewRightAnchor?.isActive = false
+            cell.bubbleViewLeftAnchor?.isActive = true
+        }
+        // lets modify the bubbleView width anchor
+        cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 20
     }
     
-    
-    func setupInputComponents(){
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        collectionView?.collectionViewLayout.invalidateLayout()
+    }
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
-        view.addSubview(containerView)
-        view.addSubview(sendButton)
-        view.addSubview(inputTextFiled)
-        view.addSubview(separatorLineView)
-        constraintForAllComponents()
+        var height : CGFloat = 80
+        if let text = messages[indexPath.item].text {
+            height = estimateFrameForText(text: text).height + 18
+        }
+        
+        let width = UIScreen.main.bounds.width
+        return CGSize(width: width, height: height)
+    }
+    
+    private func estimateFrameForText(text : String) -> CGRect {
+        
+        let size = CGSize(width: 200, height: 500)
+        let option = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
+        return NSString(string : text).boundingRect(with: size, options: option, attributes: [NSAttributedStringKey.font : UIFont.systemFont(ofSize: 16)], context: nil)
+    }
+    
+    var buttomContainerAnchor : NSLayoutConstraint?
+    
+    func setupInputComponents(containerView : UIView) -> UIView{
+        
+        containerView.addSubview(sendButton)
+        containerView.addSubview(inputTextFiled)
+        containerView.addSubview(separatorLineView)
+        constraintForViewComponents(containerView : containerView)
+        return containerView
     }
 //    MARK: View Constraint
-    func constraintForAllComponents(){
-        // container text view anchor x,y,w,h
-        NSLayoutConstraint.activate([containerView.leftAnchor.constraint(equalTo: view.leftAnchor), containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor), containerView.widthAnchor.constraint(equalTo: view.widthAnchor), containerView.heightAnchor.constraint(equalToConstant: 50)])
-        
+    func constraintForViewComponents(containerView : UIView){
         // Send button Anchor x,y,w,h
         NSLayoutConstraint.activate([sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor), sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), sendButton.widthAnchor.constraint(equalToConstant: 50), sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor)])
         
@@ -138,6 +236,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
             if error != nil {
                 print(error as Any)
             }
+            self.inputTextFiled.text = nil
             let userMessageRefrence = Database.database().reference().child("userMessage").child(fromID)
             
             let messageID = childRefrence.key
@@ -150,7 +249,6 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
     }
     
 //    MARK: TextField Properties
-    
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         handleSend()
         return true

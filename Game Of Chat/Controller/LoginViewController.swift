@@ -13,7 +13,6 @@ import Firebase
 class LoginViewController: UIViewController {
     
     var messageController = MessageController()
-    
     let inputContainerView : UIView = {
         let view = UIView()
         view.backgroundColor = .white
@@ -22,7 +21,6 @@ class LoginViewController: UIViewController {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
     lazy var loginRegisterButton : UIButton = {
         let button = UIButton(type: .system)
         button.backgroundColor =  UIColor(r: 80, g: 101, b: 161)
@@ -32,11 +30,9 @@ class LoginViewController: UIViewController {
         button.layer.cornerRadius = 5
         button.layer.masksToBounds = true
         button.translatesAutoresizingMaskIntoConstraints = false
-        
         button.addTarget(self, action: #selector(handleLoginRegister), for: .touchUpInside)
         return button
     }()
-    
     @objc func handleLoginRegister(){
         if loginRegisterSegmentedControl.selectedSegmentIndex == 0 {
             handleLogin()
@@ -44,7 +40,6 @@ class LoginViewController: UIViewController {
             handleRegister()
         }
     }
-    
     func handleLogin(){
         
         guard  let email = emailTextField.text, let password = passwordTextField.text else {
@@ -67,7 +62,6 @@ class LoginViewController: UIViewController {
         textField.translatesAutoresizingMaskIntoConstraints = false
         return textField
     }()
-    
     let emailTextField : UITextField = {
         let textField = UITextField()
         textField.placeholder = "Email"
@@ -93,7 +87,6 @@ class LoginViewController: UIViewController {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
     lazy var profileImageView : UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(named: "gameofthrones_splash")
@@ -104,8 +97,6 @@ class LoginViewController: UIViewController {
         imageView.isUserInteractionEnabled = true
         return imageView
     }()
-    
-    
     @objc lazy var loginRegisterSegmentedControl : UISegmentedControl = {
         let segmentedControl = UISegmentedControl(items: ["Login","Register"])
         segmentedControl.translatesAutoresizingMaskIntoConstraints = false
@@ -113,10 +104,7 @@ class LoginViewController: UIViewController {
         segmentedControl.tintColor = .white
         segmentedControl.addTarget(self, action: #selector(handleLoginRegisterChange), for : .valueChanged)
         return segmentedControl
-        
     }()
-    
-    
     @objc func handleLoginRegisterChange(){
         
         let title = loginRegisterSegmentedControl.titleForSegment(at: loginRegisterSegmentedControl.selectedSegmentIndex)
@@ -140,7 +128,6 @@ class LoginViewController: UIViewController {
         passwordTextFieldHeightAnchor = passwordTextField.heightAnchor.constraint(equalTo: inputContainerView.heightAnchor, multiplier: loginRegisterSegmentedControl.selectedSegmentIndex == 0 ? 1/2 : 1/3)
         passwordTextFieldHeightAnchor?.isActive = true
     }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(r: 61, g: 91, b: 151)
@@ -154,11 +141,9 @@ class LoginViewController: UIViewController {
         anchorForProfileImageView()
         anchorForSegmentedControl()
     }
-    
     override var preferredStatusBarStyle: UIStatusBarStyle{
         return .lightContent
     }
-    
     var inputContainerViewHightAnchor : NSLayoutConstraint?
     var nameTextFieldHeightAnchor : NSLayoutConstraint?
     var emailTextFieldHeightAnchor : NSLayoutConstraint?
@@ -173,9 +158,6 @@ class LoginViewController: UIViewController {
     }
     func anchorForContainerViews(){
         // need x,y, width and hight container
-        
-        
-        
         // Input Container for Name, email and Password
         inputContainerView.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         inputContainerView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
@@ -188,7 +170,6 @@ class LoginViewController: UIViewController {
         inputContainerView.addSubview(emailTextField)
         inputContainerView.addSubview(emailSaperatorView)
         inputContainerView.addSubview(passwordTextField)
-        
         
         // Login - Register button anchor
         loginRegisterButton.topAnchor.constraint(equalTo: inputContainerView.bottomAnchor, constant: 10).isActive = true
@@ -229,7 +210,6 @@ class LoginViewController: UIViewController {
         passwordTextField.widthAnchor.constraint(equalTo: inputContainerView.widthAnchor).isActive = true
         passwordTextFieldHeightAnchor =   passwordTextField.heightAnchor.constraint(equalTo: inputContainerView.heightAnchor, multiplier: 1/3)
         passwordTextFieldHeightAnchor?.isActive = true
-        
     }
     func anchorForSegmentedControl(){
         
@@ -239,7 +219,6 @@ class LoginViewController: UIViewController {
                                      loginRegisterSegmentedControl.heightAnchor.constraint(equalToConstant: 36)
             ])
     }
-    
 }
 extension UIColor{
     convenience init(r: CGFloat , g: CGFloat , b: CGFloat ){
