@@ -100,29 +100,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         super.viewDidDisappear(animated)
         NotificationCenter.default.removeObserver(self)
     }
-    
-    // This Code is for animating keyboard display and dismiss keyboard.
-//    func setupKeyboardObservers(){
-//        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillShow), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
-//
-//        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillHide), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
-//
-//    }
-//    @objc func handleKeyboardWillShow(notification : Notification){
-//        if let keyboardFrame = notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue {
-//            let keyboardRect = keyboardFrame.cgRectValue
-//            let keyboardHeight = keyboardRect.height
-//            // we will bring the containerview above somehow
-//            buttomContainerAnchor?.constant = -keyboardHeight
-//            buttomContainerAnchor?.isActive = true
-//        }
-//
-//        if let keyBoardAnimationDuration = notification.userInfo?[UIKeyboardAnimationDurationUserInfoKey] as? TimeInterval {
-//            UIView.animate(withDuration: keyBoardAnimationDuration, animations: {
-//                self.view.layoutIfNeeded()
-//            })
-//        }
-//    }
+  
     
     @objc func handleKeyboardWillHide(notification : Notification){
      
