@@ -33,44 +33,55 @@ class MessageController: UITableViewController {
         let refrence = Database.database().reference().child("userMessage").child(uid)
         
         refrence.observe(.childAdded, with: { (snapshot) in
-            
-            let messageID = snapshot.key
-            let messageRefrence = Database.database().reference().child("messages").child(messageID)
-            
-            messageRefrence.observeSingleEvent(of: .value, with: { (snapshot) in
-            
-                let message = Message()
-                if let dictionary = snapshot.value as? [String : AnyObject] {
-                    // to use setValueForKeys(dictionary) make sure your message is objc format data or else it will fail
-                    // also make sure your message object name is same as dictionary key
-                    message.setValuesForKeys(dictionary)
-                    self.messages.append(message)
-                    if let chatPartnerID = message.chatPartnerID() {
-                        self.messageDictionary[chatPartnerID] = message
-                        // Need to understand this line for update of message with the messageDictionary.values
-                        // what this is doing is collecting all toID and keeping in message as single object... which is kind a puzzeling
-                        self.messages = Array(self.messageDictionary.values)
-                        
-                        self.messages.sort(by: { (message1, message2) -> Bool in
-                           return Int(truncating: message1.timeStamp!) > Int(truncating: message2.timeStamp!)
-                        })
-                    }
-                    // timer will delay operation for dispatch queue for contineous reload inside block So instead it will prevent multiple repetetion for async operation
-                    // Now the data is reloaded only one time in table view with this delay operation
-                    self.timer?.invalidate()
-                    self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.displayTableData), userInfo: nil, repeats: false)
-                }
+            let userID  = snapshot.key
+            Database.database().reference().child("userMessage").child(uid).child(userID).observe(.childAdded, with: { (snapshot) in
+                let messageId = snapshot.key
+                self.fetchMessageWithMessageID(messageId: messageId)
             })
         }, withCancel: nil)
     }
+    
     var timer : Timer?
-@objc func displayTableData() {
-    // reload data with async opration
-    DispatchQueue.main.async {
-        self.tableView.reloadData()
+    
+    
+    private func fetchMessageWithMessageID(messageId : String) {
+        let messageRefrence = Database.database().reference().child("messages").child(messageId)
+        messageRefrence.observeSingleEvent(of: .value, with: { (snapshot) in
+            let message = Message()
+            if let dictionary = snapshot.value as? [String : AnyObject] {
+                // to use setValueForKeys(dictionary) make sure your message is objc format data or else it will fail
+                // also make sure your message object name is same as dictionary key
+                message.setValuesForKeys(dictionary)
+                self.messages.append(message)
+                if let chatPartnerID = message.chatPartnerID() {
+                    self.messageDictionary[chatPartnerID] = message
+                }
+                self.attemptReloadTableView()
+            }
+        })
     }
-}
-//    MARK: Table View Contents
+    
+    private func attemptReloadTableView(){
+        // Need to understand this line for update of message with the messageDictionary.values
+        // what this is doing is collecting all toID and keeping in message as single object... which is kind a puzzeling
+        self.timer?.invalidate()
+        // timer will delay operation for dispatch queue for contineous reload inside block So instead it will prevent multiple repetetion for async operation
+        // Now the data is reloaded only one time in table view with this delay operation
+        self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.displayTableData), userInfo: nil, repeats: false)
+    }
+    @objc func displayTableData() {
+        
+        self.messages = Array(self.messageDictionary.values)
+        
+        self.messages.sort(by: { (message1, message2) -> Bool in
+            return Int(truncating: message1.timeStamp!) > Int(truncating: message2.timeStamp!)
+        })
+        // reload data with async opration
+        DispatchQueue.main.async {
+            self.tableView.reloadData()
+        }
+    }
+    //    MARK: Table View Contents
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return messages.count

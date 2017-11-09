@@ -20,9 +20,9 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
     var messages = [Message]()
     
     func observeMessages(){
-       guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let uid = Auth.auth().currentUser?.uid , let toID = user?.id else { return }
         
-        let messageIDRefrence = Database.database().reference().child("userMessage").child(uid)
+        let messageIDRefrence = Database.database().reference().child("userMessage").child(uid).child(toID)
         messageIDRefrence.observe(.childAdded) { (snapshot) in
             
             let messageID = snapshot.key
@@ -32,9 +32,8 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
                 // make sure your key to messageObject matches with dictionary key
                 guard let dictionary = snapshot.value as? [String : AnyObject] else {return}
                 message.setValuesForKeys(dictionary)
-                if message.chatPartnerID() == self.user?.id {
                     self.messages.append(message)
-                }
+                
                 DispatchQueue.main.async {
                     self.collectionView?.reloadData()
                 }
@@ -101,7 +100,6 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         super.viewDidDisappear(animated)
         NotificationCenter.default.removeObserver(self)
     }
-    
     
     // This Code is for animating keyboard display and dismiss keyboard.
 //    func setupKeyboardObservers(){
@@ -237,12 +235,12 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
                 print(error as Any)
             }
             self.inputTextFiled.text = nil
-            let userMessageRefrence = Database.database().reference().child("userMessage").child(fromID)
+            let userMessageRefrence = Database.database().reference().child("userMessage").child(fromID).child(toID)
             
             let messageID = childRefrence.key
             userMessageRefrence.updateChildValues([messageID : 1])
             
-            let receipientMessageRefrence = Database.database().reference().child("userMessage").child(toID)
+            let receipientMessageRefrence = Database.database().reference().child("userMessage").child(toID).child(fromID)
             
             receipientMessageRefrence.updateChildValues([messageID : 1])
         }
