@@ -40,6 +40,14 @@ class  ChatMessageCell: UICollectionViewCell {
         return view
     }()
     
+    let messageImageView : UIImageView = {
+        let imageView = UIImageView()
+        imageView.layer.cornerRadius = 16
+        imageView.layer.masksToBounds = true
+        imageView.contentMode = .scaleAspectFill
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
+    }()
     var bubbleWidthAnchor : NSLayoutConstraint?
     var bubbleViewRightAnchor : NSLayoutConstraint?
     var bubbleViewLeftAnchor : NSLayoutConstraint?
@@ -49,6 +57,7 @@ class  ChatMessageCell: UICollectionViewCell {
         addSubview(bubbleView)
         addSubview(textView)
         addSubview(profileImageView)
+        bubbleView.addSubview(messageImageView)
         constraingForView()
         
     }
@@ -61,13 +70,15 @@ class  ChatMessageCell: UICollectionViewCell {
         
         bubbleWidthAnchor = bubbleView.widthAnchor.constraint(equalToConstant: 200)
         bubbleViewRightAnchor = bubbleView.rightAnchor.constraint(equalTo: self.rightAnchor, constant: -8)
-        bubbleViewRightAnchor?.isActive = true
         bubbleViewLeftAnchor = bubbleView.leftAnchor.constraint(equalTo: profileImageView.rightAnchor, constant : 8)
             
         NSLayoutConstraint.activate([bubbleView.topAnchor.constraint(equalTo: self.topAnchor), bubbleWidthAnchor!,bubbleView.heightAnchor.constraint(equalTo: self.heightAnchor) ])
         
         // profile Image view constraint
         NSLayoutConstraint.activate([profileImageView.leftAnchor.constraint(equalTo: self.leftAnchor , constant : 8), profileImageView.bottomAnchor.constraint(equalTo: self.bottomAnchor), profileImageView.widthAnchor.constraint(equalToConstant: 32), profileImageView.heightAnchor.constraint(equalToConstant: 32)])
+        
+        // messageImageView constraing inside bubble view
+        NSLayoutConstraint.activate([messageImageView.leftAnchor.constraint(equalTo: bubbleView.leftAnchor), messageImageView.topAnchor.constraint(equalTo: bubbleView.topAnchor), messageImageView.widthAnchor.constraint(equalTo: bubbleView.widthAnchor), messageImageView.heightAnchor.constraint(equalTo: bubbleView.heightAnchor)])
        
     }
     

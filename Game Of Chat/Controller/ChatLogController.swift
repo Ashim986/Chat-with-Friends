@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-class ChatLogController: UICollectionViewController,UITextFieldDelegate, UICollectionViewDelegateFlowLayout {
+class ChatLogController: UICollectionViewController,UITextFieldDelegate, UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
     var user : User? {
         didSet {
@@ -64,6 +64,19 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
        return view
     }()
     
+    lazy var uploadedImageView : UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = #imageLiteral(resourceName: "upload_image_icon")
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.isUserInteractionEnabled = true
+        let imageTap = UITapGestureRecognizer(target: self, action: #selector(handleUploadTap))
+        imageTap.numberOfTapsRequired = 1
+        imageView.addGestureRecognizer(imageTap)
+        
+       return imageView
+    }()
+    
+  
     let cellID = "cellID"
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -74,7 +87,6 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         collectionView?.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellID)
         collectionView?.keyboardDismissMode = .interactive
 
-//        setupKeyboardObservers()
     }
     
     lazy var inputContainerView : UIView? = {
@@ -125,7 +137,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         let message = messages[indexPath.item]
         cell.textView.text = message.text
         setupCell(cell: cell, message: message)
-    
+       
         return cell
     }
     
@@ -133,6 +145,15 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         
         if let profileImageURL = user?.profileImageUrl {
             cell.profileImageView.sd_setImage(with: URL(string : profileImageURL), completed: nil)
+        }
+        
+        if let messageImageURL = message.imageURL {
+            cell.messageImageView.sd_setImage(with: URL(string : messageImageURL), completed: nil)
+            cell.messageImageView.isHidden = false
+            cell.bubbleView.backgroundColor = .clear
+        }else {
+            cell.bubbleView.isHidden = false
+            cell.messageImageView.isHidden = true
         }
         if message.fromID == Auth.auth().currentUser?.uid {
             cell.bubbleView.backgroundColor = ChatMessageCell.blueColor
@@ -149,7 +170,10 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
             cell.bubbleViewLeftAnchor?.isActive = true
         }
         // lets modify the bubbleView width anchor
-        cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 20
+        if let text = message.text {
+            cell.bubbleWidthAnchor?.constant = estimateFrameForText(text : text).width + 20
+        }
+       
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -180,6 +204,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         containerView.addSubview(sendButton)
         containerView.addSubview(inputTextFiled)
         containerView.addSubview(separatorLineView)
+        containerView.addSubview(uploadedImageView)
         constraintForViewComponents(containerView : containerView)
         return containerView
     }
@@ -189,10 +214,13 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         NSLayoutConstraint.activate([sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor), sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), sendButton.widthAnchor.constraint(equalToConstant: 50), sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor)])
         
         // InputTextField Anchor x,y,w,h
-        NSLayoutConstraint.activate([inputTextFiled.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant : 8),inputTextFiled.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), inputTextFiled.rightAnchor.constraint(equalTo: sendButton.leftAnchor, constant: 0),inputTextFiled.heightAnchor.constraint(equalTo: containerView.heightAnchor)])
+        NSLayoutConstraint.activate([inputTextFiled.leftAnchor.constraint(equalTo: uploadedImageView.rightAnchor, constant: 4),inputTextFiled.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), inputTextFiled.rightAnchor.constraint(equalTo: sendButton.leftAnchor, constant: 0),inputTextFiled.heightAnchor.constraint(equalTo: containerView.heightAnchor)])
         
         // saparatorLineView Anchor x,y,w,h
         NSLayoutConstraint.activate([separatorLineView.topAnchor.constraint(equalTo: containerView.topAnchor), separatorLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor),separatorLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor),separatorLineView.heightAnchor.constraint(equalToConstant: 1)])
+        // Constraint for uploadedImageView
+        NSLayoutConstraint.activate([uploadedImageView.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 4), uploadedImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), uploadedImageView.widthAnchor.constraint(equalToConstant: 44), uploadedImageView.heightAnchor.constraint(equalToConstant : 44)])
+        
         
     }
     @objc func handelBack(){
@@ -230,4 +258,84 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         return true
     }
     
+    
+    @objc func handleUploadTap() {
+        let imagePickerController = UIImagePickerController()
+        imagePickerController.delegate = self
+        imagePickerController.allowsEditing = true
+        present(imagePickerController, animated: true, completion: nil)
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        dismiss(animated: true, completion: nil)
+    }
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
+        var selectedImageFromPicker : UIImage?
+        
+        if let editedImage = info["UIImagePickerControllerEditedImage"] as? UIImage{
+            //        print ((editedImage as AnyObject).size())
+            selectedImageFromPicker = editedImage
+        }
+            
+        else if let originalImage = info["UIImagePickerControllerOriginalImage"] as? UIImage
+        {
+            selectedImageFromPicker = originalImage
+            
+        }
+        if let selectedImage = selectedImageFromPicker{
+            uploadToFireBaseStorageUsingImage(image: selectedImage)
+        }
+        
+        dismiss(animated: true, completion: nil)
+        
+    }
+    
+    private func uploadToFireBaseStorageUsingImage(image : UIImage) {
+        
+        let imageName = NSUUID().uuidString
+        let storageRefrence = Storage.storage().reference().child("messageImages").child(imageName)
+        
+        if let uploadData = UIImageJPEGRepresentation(image, 0.2){
+            storageRefrence.putData(uploadData, metadata: nil, completion: { (metaData, error) in
+                if error != nil{
+                    print("faile to upload Image ", error as Any)
+                    return
+                }
+                if let imageURL = metaData?.downloadURL()?.absoluteString {
+                    self.sendMessageWithImageURL(imageURL: imageURL)
+                    
+                }
+             
+            })
+        }
+        
+    }
+    
+    
+    private func sendMessageWithImageURL(imageURL : String){
+        
+        let refrences = Database.database().reference().child("messages")
+        let childRefrence = refrences.childByAutoId()
+        let toID = user!.id!
+        let fromID = Auth.auth().currentUser!.uid
+        let timeStamp : NSNumber = NSNumber(value: Int(Date().timeIntervalSince1970))
+        
+        
+        let values :[String : Any] = ["imageURL" : imageURL, "toID" : toID, "fromID" : fromID , "timeStamp": timeStamp]
+        
+        childRefrence.updateChildValues(values) { (error, ref) in
+            if error != nil {
+                print(error as Any)
+            }
+            self.inputTextFiled.text = nil
+            let userMessageRefrence = Database.database().reference().child("userMessage").child(fromID).child(toID)
+            
+            let messageID = childRefrence.key
+            userMessageRefrence.updateChildValues([messageID : 1])
+            
+            let receipientMessageRefrence = Database.database().reference().child("userMessage").child(toID).child(fromID)
+            
+            receipientMessageRefrence.updateChildValues([messageID : 1])
+        }
+    }
 }
