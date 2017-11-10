@@ -47,11 +47,12 @@ class MessageController: UITableViewController {
     private func fetchMessageWithMessageID(messageId : String) {
         let messageRefrence = Database.database().reference().child("messages").child(messageId)
         messageRefrence.observeSingleEvent(of: .value, with: { (snapshot) in
-            let message = Message()
+            
+            
             if let dictionary = snapshot.value as? [String : AnyObject] {
+                let message = Message(dictionary: dictionary)
                 // to use setValueForKeys(dictionary) make sure your message is objc format data or else it will fail
                 // also make sure your message object name is same as dictionary key
-                message.setValuesForKeys(dictionary)
                 self.messages.append(message)
                 if let chatPartnerID = message.chatPartnerID() {
                     self.messageDictionary[chatPartnerID] = message
