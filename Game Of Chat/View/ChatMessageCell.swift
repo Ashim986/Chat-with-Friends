@@ -7,8 +7,17 @@
 //
 
 import UIKit
+import AVFoundation
 
 class  ChatMessageCell: UICollectionViewCell {
+    var chatLogController : ChatLogController?
+    var message : Message?
+    let activityIndicatorView : UIActivityIndicatorView = {
+        let activityIndicator =  UIActivityIndicatorView(activityIndicatorStyle: .whiteLarge)
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+       return activityIndicator
+    }()
     
     static let blueColor = UIColor(r: 0, g: 137, b: 240)
     
@@ -17,6 +26,7 @@ class  ChatMessageCell: UICollectionViewCell {
         textView.backgroundColor = .clear
         textView.text = "some sample text"
         textView.textColor = .white
+        textView.isEditable = false
         textView.translatesAutoresizingMaskIntoConstraints = false
         return textView
     }()
@@ -30,8 +40,7 @@ class  ChatMessageCell: UICollectionViewCell {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
-    
-    let bubbleView : UIView = {
+        let bubbleView : UIView = {
         let view = UIView()
         view.backgroundColor = blueColor
         view.layer.cornerRadius = 16
@@ -39,15 +48,37 @@ class  ChatMessageCell: UICollectionViewCell {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+    lazy var playButton : UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(#imageLiteral(resourceName: "play"), for: .normal)
+        button.tintColor = .white
+        button.addTarget(self, action: #selector(handlePlay), for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
     
-    let messageImageView : UIImageView = {
+   lazy var messageImageView : UIImageView = {
         let imageView = UIImageView()
         imageView.layer.cornerRadius = 16
         imageView.layer.masksToBounds = true
         imageView.contentMode = .scaleAspectFill
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        let imageTap = UITapGestureRecognizer(target: self, action: #selector(handleMessageImageTap))
+        imageTap.numberOfTapsRequired = 1
+        imageView.addGestureRecognizer(imageTap)
+        imageView.isUserInteractionEnabled = true
         return imageView
     }()
+    
+    @objc func handleMessageImageTap(tapGesture: UITapGestureRecognizer){
+        
+        if message?.videoURL != nil {
+            return
+        }
+        let imageView = tapGesture.view as! UIImageView
+        self.chatLogController?.performZoomInForStratingImageView(stargingImageView: imageView)
+    }
+    
     var bubbleWidthAnchor : NSLayoutConstraint?
     var bubbleViewRightAnchor : NSLayoutConstraint?
     var bubbleViewLeftAnchor : NSLayoutConstraint?
@@ -58,6 +89,8 @@ class  ChatMessageCell: UICollectionViewCell {
         addSubview(textView)
         addSubview(profileImageView)
         bubbleView.addSubview(messageImageView)
+        bubbleView.addSubview(playButton)
+        bubbleView.addSubview(activityIndicatorView)
         constraingForView()
         
     }
@@ -80,9 +113,36 @@ class  ChatMessageCell: UICollectionViewCell {
         // messageImageView constraing inside bubble view
         NSLayoutConstraint.activate([messageImageView.leftAnchor.constraint(equalTo: bubbleView.leftAnchor), messageImageView.topAnchor.constraint(equalTo: bubbleView.topAnchor), messageImageView.widthAnchor.constraint(equalTo: bubbleView.widthAnchor), messageImageView.heightAnchor.constraint(equalTo: bubbleView.heightAnchor)])
        
+        // playButton constraint
+       NSLayoutConstraint.activate([playButton.centerXAnchor.constraint(equalTo: bubbleView.centerXAnchor), playButton.centerYAnchor.constraint(equalTo: bubbleView.centerYAnchor), playButton.widthAnchor.constraint(equalToConstant: 40), playButton.heightAnchor.constraint(equalToConstant: 40)])
+        
+        // activity Indicator vie
+       NSLayoutConstraint.activate([activityIndicatorView.centerXAnchor.constraint(equalTo: bubbleView.centerXAnchor), activityIndicatorView.centerYAnchor.constraint(equalTo: bubbleView.centerYAnchor), activityIndicatorView.widthAnchor.constraint(equalToConstant: 40), activityIndicatorView.heightAnchor.constraint(equalToConstant: 40)])
     }
     
-
+    var playerLayer : AVPlayerLayer?
+    var player : AVPlayer?
+    @objc func handlePlay() {
+        
+        if let videoURLString = message?.videoURL , let url = URL(string : videoURLString) {
+            player = AVPlayer(url: url)
+            
+            playerLayer = AVPlayerLayer(player: player!)
+            playerLayer?.frame = bubbleView.bounds
+            bubbleView.layer.addSublayer(playerLayer!)
+            player?.play()
+            activityIndicatorView.startAnimating()
+            playButton.isHidden = true
+            
+        }
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        playerLayer?.removeFromSuperlayer()
+        player?.pause()
+        activityIndicatorView.stopAnimating()
+    }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")

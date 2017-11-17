@@ -17,9 +17,7 @@ class UserCell: UITableViewCell {
         
         textLabel?.frame = CGRect(x: 64, y: (textLabel?.frame.origin.y)! - 2, width: frame.width, height: (textLabel?.frame.height)!)
         detailTextLabel?.frame = CGRect(x: 64, y: (detailTextLabel?.frame.origin.y)! + 2, width: frame.width, height: (detailTextLabel?.frame.height)!)
-        
     }
-    
     let profileImageView : UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(named: "nedstark")
@@ -29,9 +27,6 @@ class UserCell: UITableViewCell {
         imageView.contentMode = .scaleAspectFill
         return imageView
     }()
-    
-    
-    
     
     override init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: .subtitle, reuseIdentifier: reuseIdentifier)
