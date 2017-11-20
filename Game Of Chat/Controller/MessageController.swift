@@ -26,7 +26,11 @@ class MessageController: UITableViewController {
         // user in not logged in
         checkIfUserIsLoggedIn()
         
+        tableView.allowsMultipleSelectionDuringEditing = true
+        
     }
+    
+    
     func observeUserMessage() {
         guard let uid = Auth.auth().currentUser?.uid else {return}
         
@@ -38,6 +42,12 @@ class MessageController: UITableViewController {
                 let messageId = snapshot.key
                 self.fetchMessageWithMessageID(messageId: messageId)
             })
+        }, withCancel: nil)
+        
+        refrence.observe(.childRemoved, with: { (snapshot) in
+            self.messageDictionary.removeValue(forKey: snapshot.key)
+            self.attemptReloadTableView()
+            
         }, withCancel: nil)
     }
     
@@ -84,6 +94,28 @@ class MessageController: UITableViewController {
     }
     //    MARK: Table View Contents
     
+    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+        
+        guard let uid = Auth.auth().currentUser?.uid else {
+            return
+        }
+         let message = self.messages[indexPath.row]
+        
+        if let chatPartnerId = message.chatPartnerID() {
+            Database.database().reference().child("userMessage").child(uid).child(chatPartnerId).removeValue(completionBlock: { (error, ref) in
+                if error != nil {
+                    print("failed to delet message ", error as Any)
+                return
+                }
+                
+                self.messageDictionary.removeValue(forKey: chatPartnerId)
+                self.attemptReloadTableView()
+            })
+        }
+    }
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return messages.count
     }

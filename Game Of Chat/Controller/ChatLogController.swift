@@ -50,40 +50,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         }
     }
     
-    let  sendButton : UIButton = {
-       let button = UIButton(type: .system)
-        button.setTitle("Send", for: .normal)
-        button.addTarget(self, action: #selector(handleSend), for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
     
-    lazy var inputTextFiled : UITextField = {
-        let textField = UITextField()
-        textField.attributedPlaceholder = NSAttributedString(string: "Enter Message", attributes: [NSAttributedStringKey.foregroundColor : UIColor.gray])
-        textField.delegate = self
-        textField.keyboardType = .emailAddress
-        textField.translatesAutoresizingMaskIntoConstraints = false
-       return textField
-    }()
-    let separatorLineView : UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(r: 220, g: 220, b: 220)
-        view.translatesAutoresizingMaskIntoConstraints = false
-       return view
-    }()
-    
-    lazy var uploadedImageView : UIImageView = {
-        let imageView = UIImageView()
-        imageView.image = #imageLiteral(resourceName: "upload_image_icon")
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.isUserInteractionEnabled = true
-        let imageTap = UITapGestureRecognizer(target: self, action: #selector(handleUploadTap))
-        imageTap.numberOfTapsRequired = 1
-        imageView.addGestureRecognizer(imageTap)
-        
-       return imageView
-    }()
     let cellID = "cellID"
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -98,12 +65,11 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         setupKeyboardObservers()
     }
     
-    lazy var inputContainerView : UIView? = {
+    lazy var inputContainerView : ChatInputContainerView = {
        
-        let containerView = UIView()
-        containerView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50)
-        containerView.backgroundColor = .white
-        return setupInputComponents(containerView: containerView)
+        let chatInputControllerView = ChatInputContainerView(frame: CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50))
+        chatInputControllerView.chatLogController = self
+        return chatInputControllerView
     }()
     
     override var inputAccessoryView: UIView? {
@@ -219,36 +185,13 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         return NSString(string : text).boundingRect(with: size, options: option, attributes: [NSAttributedStringKey.font : UIFont.systemFont(ofSize: 16)], context: nil)
     }
     
-    func setupInputComponents(containerView : UIView) -> UIView{
-        
-        containerView.addSubview(sendButton)
-        containerView.addSubview(inputTextFiled)
-        containerView.addSubview(separatorLineView)
-        containerView.addSubview(uploadedImageView)
-        constraintForViewComponents(containerView : containerView)
-        return containerView
-    }
-//    MARK: View Constraint
-    func constraintForViewComponents(containerView : UIView){
-        // Send button Anchor x,y,w,h
-        NSLayoutConstraint.activate([sendButton.rightAnchor.constraint(equalTo: containerView.rightAnchor), sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), sendButton.widthAnchor.constraint(equalToConstant: 50), sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor)])
-        
-        // InputTextField Anchor x,y,w,h
-        NSLayoutConstraint.activate([inputTextFiled.leftAnchor.constraint(equalTo: uploadedImageView.rightAnchor, constant: 4),inputTextFiled.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), inputTextFiled.rightAnchor.constraint(equalTo: sendButton.leftAnchor, constant: 0),inputTextFiled.heightAnchor.constraint(equalTo: containerView.heightAnchor)])
-        
-        // saparatorLineView Anchor x,y,w,h
-        NSLayoutConstraint.activate([separatorLineView.topAnchor.constraint(equalTo: containerView.topAnchor), separatorLineView.leftAnchor.constraint(equalTo: containerView.leftAnchor),separatorLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor),separatorLineView.heightAnchor.constraint(equalToConstant: 1)])
-        // Constraint for uploadedImageView
-        NSLayoutConstraint.activate([uploadedImageView.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 4), uploadedImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor), uploadedImageView.widthAnchor.constraint(equalToConstant: 44), uploadedImageView.heightAnchor.constraint(equalToConstant : 44)])
-        
-        
-    }
+  
     @objc func handelBack(){
         dismiss(animated: true, completion: nil)
     }
     @objc func handleSend(){
-    
-        let properties = ["text" : inputTextFiled.text!] as [String : Any]
+
+        let properties = ["text" : inputContainerView.inputTextFiled.text!] as [String : Any]
         sendMessageWithProperties(properties: properties)
     }
     
@@ -275,7 +218,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
             if error != nil {
                 print(error as Any)
             }
-            self.inputTextFiled.text = nil
+            self.inputContainerView.inputTextFiled.text = nil
             let userMessageRefrence = Database.database().reference().child("userMessage").child(fromID).child(toID)
             
             let messageID = childRefrence.key
@@ -288,10 +231,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
         
     }
 //    MARK: TextField Properties
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        handleSend()
-        return true
-    }
+    
     @objc func handleUploadTap() {
         let imagePickerController = UIImagePickerController()
         imagePickerController.delegate = self
@@ -396,7 +336,6 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
                 if let imageURL = metaData?.downloadURL()?.absoluteString {
                     completion(imageURL)
                 }
-             
             })
         }
     }
@@ -427,7 +366,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
             keyWindow.addSubview(zoomingImageView)
             UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 1, options: .curveEaseIn, animations: {
                 self.blackBackgroundView?.alpha = 1
-                self.inputContainerView?.alpha = 0
+                self.inputContainerView.alpha = 0
                 // using proportion we have h1/w1 = h2/w2
                 let height = (self.startingFrame?.height)! * keyWindow.frame.width / (self.startingFrame?.width)!
                 
@@ -447,7 +386,7 @@ class ChatLogController: UICollectionViewController,UITextFieldDelegate, UIColle
                 zoomOutView.layer.cornerRadius = 16
                 zoomOutView.clipsToBounds = true
                 self.blackBackgroundView?.alpha = 0
-                self.inputContainerView?.alpha = 1
+                self.inputContainerView.alpha = 1
             }, completion: { (completed : Bool) in
                 zoomOutView.removeFromSuperview()
                 self.blackBackgroundView?.removeFromSuperview()
